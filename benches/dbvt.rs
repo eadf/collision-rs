@@ -12,7 +12,7 @@ use test::Bencher;
 
 #[derive(Debug, Clone)]
 struct Value {
-    pub id: u32,
+    pub _id: u32,
     pub aabb: Aabb2<f32>,
     fat_aabb: Aabb2<f32>,
 }
@@ -20,7 +20,7 @@ struct Value {
 impl Value {
     pub fn new(id: u32, aabb: Aabb2<f32>) -> Self {
         Self {
-            id,
+            _id: id,
             fat_aabb: aabb.add_margin(Vector2::new(0., 0.)),
             aabb,
         }

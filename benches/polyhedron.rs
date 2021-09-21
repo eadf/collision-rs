@@ -6,8 +6,8 @@ use cgmath::prelude::*;
 use cgmath::{Decomposed, Point3, Quaternion, Vector3};
 use collision::prelude::*;
 use collision::primitive::ConvexPolyhedron;
-use genmesh::generators::{IndexedPolygon, SharedVertex, SphereUV};
-use genmesh::Triangulate;
+use genmesh::generators::{IndexedPolygon, SharedVertex, SphereUv};
+use genmesh::{Triangulate, Vertex};
 use rand::Rng;
 use test::{black_box, Bencher};
 
@@ -87,11 +87,11 @@ fn dirs(n: usize) -> Vec<Vector3<f32>> {
 }
 
 fn sphere(n: usize, with_faces: bool) -> ConvexPolyhedron<f32> {
-    let gen = SphereUV::new(n, n);
+    let gen = SphereUv::new(n, n);
 
     let vertices = gen
         .shared_vertex_iter()
-        .map(|v| Point3::from(v.pos))
+        .map(|v| Point3::from(*v.pos.as_ref()))
         .collect::<Vec<_>>();
 
     if with_faces {
