@@ -248,9 +248,17 @@ impl<S: BaseFloat> Discrete<Aabb3<S>> for Aabb3<S> {
     }
 }
 
-impl<S: BaseFloat + cgmath::num_traits::Float> Discrete<Aabb3<S>> for Line3<S> {
+impl<S: BaseFloat> Discrete<Aabb3<S>> for Line3<S> {
     #[inline]
-    /// Tests if the AABB3 contains OR intersects a Line3.
+    /// Tests if the `Aabb3<Float>` contains or intersects a `Line3<Float>`.
+    ///```
+    /// # use collision::{Line3,Aabb3};
+    /// # use cgmath::Point3;
+    /// use collision::Discrete;
+    /// let aabb = Aabb3::new(Point3::new(0., 0., 0.), Point3::new(10., 20., 30.));
+    /// let line = Line3::new(Point3::new(0., 0., 0.), Point3::new(10., 20., 30.));
+    /// assert!(aabb.intersects(&line));
+    ///```
     fn intersects(&self, aabb: &Aabb3<S>) -> bool {
         // Intersects if any of the end points are inside the AABB.
         if aabb.contains(&self.origin) || aabb.contains(&self.dest) {
@@ -259,8 +267,10 @@ impl<S: BaseFloat + cgmath::num_traits::Float> Discrete<Aabb3<S>> for Line3<S> {
         // Else: test for a ray <-> AABB intersection
         if self
             .dest
-            .ulps_ne(&self.origin, S::epsilon(), S::default_max_ulps())
+            .ulps_eq(&self.origin, S::epsilon(), S::default_max_ulps())
         {
+            false
+        } else {
             // do NOT normalize the ray
             let ray = Ray3::new(self.origin, self.dest - self.origin);
             let inv_dir =
@@ -286,15 +296,8 @@ impl<S: BaseFloat + cgmath::num_traits::Float> Discrete<Aabb3<S>> for Line3<S> {
                 false
             } else {
                 let t = if tmin >= S::zero() { tmin } else { tmax };
-                if t > S::one() || t < S::zero() {
-                    false
-                } else {
-                    true
-                }
+                t <= S::one() && t >= S::zero()
             }
-        } else {
-            // Line was a single point, and we have already tested the endpoints
-            false
         }
     }
 }
