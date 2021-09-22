@@ -121,3 +121,71 @@ impl<S: BaseFloat> Continuous<Line2<S>> for Ray2<S> {
         None
     }
 }
+
+impl<S: BaseFloat> Continuous<Line2<S>> for Line2<S> {
+    type Result = Point2<S>;
+
+    #[inline]
+    /// Returns an intersection point between `Line2<Float>` and `Line2<Float>`.
+    ///```
+    /// # use collision::Line2;
+    /// # use cgmath::Point2;
+    /// use collision::Continuous;
+    /// let line1 = Line2::from(([-1.,0.],[1.,0.]));
+    /// let line2 = Line2::from(([0.,-1.],[0.,1.]));
+    /// assert!(line1.intersection(&line2).is_some());
+    /// cgmath::assert_ulps_eq!(line1.intersection(&line2).unwrap(), Point2::new(0.,0.));
+    fn intersection(&self, other: &Line2<S>) -> Option<Self::Result> {
+        let a1 = self.dest.y - self.origin.y;
+        let b1 = self.origin.x - self.dest.x;
+
+        let a2 = other.dest.y - other.origin.y;
+        let b2 = other.origin.x - other.dest.x;
+        let d1 = a1 * b2;
+        let d2 = a2 * b1;
+        if cgmath::ulps_eq!(d1, d2) {
+            None
+        } else {
+            let c1 = a1 * self.origin.x + b1 * self.origin.y;
+            let c2 = a2 * other.origin.x + b2 * other.origin.y;
+
+            let delta = d1 - d2;
+            Some(Point2::new(
+                (b2 * c1 - b1 * c2) / delta,
+                (a1 * c2 - a2 * c1) / delta,
+            ))
+        }
+    }
+}
+
+impl<S: BaseFloat> Discrete<Line2<S>> for Line2<S> {
+    #[inline]
+    /// Tests if the `Line2<Float>` intersects a `Line2<Float>`.
+    ///```
+    /// # use collision::Line2;
+    /// # use cgmath::Point3;
+    /// use collision::Discrete;
+    /// let line1 = Line2::from(([-1.,0.],[1.,0.]));
+    /// let line2 = Line2::from(([0.,-1.],[0.,1.]));
+    /// assert!(line1.intersects(&line2));
+    fn intersects(&self, other: &Line2<S>) -> bool {
+        let a1 = self.dest.y - self.origin.y;
+        let b1 = self.origin.x - self.dest.x;
+
+        let a2 = other.dest.y - other.origin.y;
+        let b2 = other.origin.x - other.dest.x;
+        cgmath::ulps_ne!(a1 * b2, a2 * b1)
+    }
+}
+
+impl<S: BaseNum> From<([S; 2],[S; 2])> for Line2<S> {
+    fn from(rhs: ([S; 2],[S; 2])) -> Self {
+        Self::new(Point2::from(rhs.0), Point2::from(rhs.1))
+    }
+}
+
+impl<S: BaseNum> From<([S; 3], [S; 3])> for Line3<S> {
+    fn from(rhs: ([S; 3], [S; 3])) -> Self {
+        Self::new(Point3::from(rhs.0), Point3::from(rhs.1))
+    }
+}
