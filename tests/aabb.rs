@@ -531,3 +531,32 @@ fn test_aabb3_transform() {
         aabb.transform(&transform)
     );
 }
+
+#[test]
+fn test_aabb3_intersects_line3() {
+    let aabb = Aabb3::new(Point3::new(0., 0., 0.), Point3::new(10., 20., 30.));
+    let line = Line3::new(Point3::new(0., 0., 0.), Point3::new(10., 20., 30.));
+    assert!(aabb.intersects(&line));
+
+    let line = Line3::new(Point3::new(0.1, 0.1, 0.1), Point3::new(-10., -20., -30.));
+    assert!(aabb.intersects(&line));
+
+    // test non-intersecting
+    let line = Line3::new(Point3::new(-0.1, 1., 1.), Point3::new(-10.1, 1., 1.));
+    assert!(!line.intersects(&aabb));
+    let line = Line3::new(Point3::new(-10., 1., 1.), Point3::new(-0.1, 1., 1.));
+    assert!(!line.intersects(&aabb));
+    let line = Line3::new(Point3::new(-0.1, -0.1, -0.1), Point3::new(-10., -20., -30.));
+    assert!(!aabb.intersects(&line));
+    assert!(!line.intersects(&aabb));
+
+    // Outside lines, pointing at the AABB, should not intersect
+    let line = Line3::new(Point3::new(-10., 1., 1.), Point3::new(-8., 1., 1.));
+    assert!(!line.intersects(&aabb));
+    let line = Line3::new(Point3::new(-8., 1., 1.), Point3::new(-10., 1., 1.));
+    assert!(!line.intersects(&aabb));
+    let line = Line3::new(Point3::new(11., 1., 1.), Point3::new(13., 1., 1.));
+    assert!(!line.intersects(&aabb));
+    let line = Line3::new(Point3::new(13., 1., 1.), Point3::new(11., 1., 1.));
+    assert!(!line.intersects(&aabb));
+}

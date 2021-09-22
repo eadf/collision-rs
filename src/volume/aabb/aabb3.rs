@@ -4,7 +4,7 @@
 use std::fmt;
 
 use cgmath::prelude::*;
-use cgmath::{BaseFloat, BaseNum, Point3, Vector3};
+use cgmath::{BaseFloat, BaseNum, Point3, UlpsEq, Vector3};
 
 use super::{max, min};
 use crate::prelude::*;
@@ -249,6 +249,68 @@ impl<S: BaseFloat> Discrete<Aabb3<S>> for Aabb3<S> {
         let (b0, b1) = (aabb.min(), aabb.max());
 
         a1.x > b0.x && a0.x < b1.x && a1.y > b0.y && a0.y < b1.y && a1.z > b0.z && a0.z < b1.z
+    }
+}
+
+impl<S: BaseFloat> Discrete<Aabb3<S>> for Line3<S> {
+    #[inline]
+    /// Tests if the `Aabb3<Float>` contains or intersects a `Line3<Float>`.
+    ///```
+    /// # use collision::{Line3,Aabb3};
+    /// # use cgmath::Point3;
+    /// use collision::Discrete;
+    /// let aabb = Aabb3::new(Point3::new(0., 0., 0.), Point3::new(10., 20., 30.));
+    /// let line = Line3::new(Point3::new(0., 0., 0.), Point3::new(10., 20., 30.));
+    /// assert!(aabb.intersects(&line));
+    ///```
+    fn intersects(&self, aabb: &Aabb3<S>) -> bool {
+        // Intersects if any of the end points are inside the AABB.
+        if aabb.contains(&self.origin) || aabb.contains(&self.dest) {
+            return true;
+        }
+        // Else: test for a ray <-> AABB intersection
+        if self
+            .dest
+            .ulps_eq(&self.origin, S::epsilon(), S::default_max_ulps())
+        {
+            false
+        } else {
+            // do NOT normalize the ray
+            let ray = Ray3::new(self.origin, self.dest - self.origin);
+            let inv_dir =
+                Vector3::new(S::one(), S::one(), S::one()).div_element_wise(ray.direction);
+
+            let mut t1 = (aabb.min.x - ray.origin.x) * inv_dir.x;
+            let mut t2 = (aabb.max.x - ray.origin.x) * inv_dir.x;
+
+            let mut tmin = t1.min(t2);
+            let mut tmax = t1.max(t2);
+
+            for i in 1..3 {
+                t1 = (aabb.min[i] - ray.origin[i]) * inv_dir[i];
+                t2 = (aabb.max[i] - ray.origin[i]) * inv_dir[i];
+
+                tmin = tmin.max(t1.min(t2));
+                tmax = tmax.min(t1.max(t2));
+            }
+
+            if (tmin < S::zero() && tmax < S::zero())
+                || (tmax.ulps_ne(&tmin, S::epsilon(), S::default_max_ulps()) && tmax < tmin)
+            {
+                false
+            } else {
+                let t = if tmin >= S::zero() { tmin } else { tmax };
+                t <= S::one() && t >= S::zero()
+            }
+        }
+    }
+}
+
+impl<S: BaseFloat + cgmath::num_traits::Float> Discrete<Line3<S>> for Aabb3<S> {
+    #[inline]
+    /// Tests if the AABB contains OR intersects a line.
+    fn intersects(&self, line: &Line3<S>) -> bool {
+        line.intersects(self)
     }
 }
 
