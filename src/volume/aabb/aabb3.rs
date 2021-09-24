@@ -268,7 +268,7 @@ impl<S: BaseFloat> Discrete<Aabb3<S>> for Line3<S> {
         if aabb.contains(&self.origin) || aabb.contains(&self.dest) {
             return true;
         }
-        // Else: test for a ray <-> AABB intersection
+
         if cgmath::ulps_eq!(self.dest, &self.origin) {
             return false;
         }
@@ -291,7 +291,8 @@ impl<S: BaseFloat> Discrete<Aabb3<S>> for Line3<S> {
             tmax = tmax.min(t1.max(t2));
         }
 
-        if (tmin < S::zero() && tmax < S::zero()) || (cgmath::ulps_ne!(tmax, &tmin) && tmax < tmin)
+
+        if (tmin < S::zero() && tmax < S::zero()) || (tmax < tmin && cgmath::ulps_ne!(tmax, &tmin))
         {
             false
         } else {
@@ -318,7 +319,8 @@ impl<S: BaseFloat> Continuous<Aabb3<S>> for Line3<S> {
     ///```
     /// # use collision::{Line3,Aabb3};
     /// # use cgmath::Point3;
-    /// use collision::Discrete;
+
+    /// use collision::Continuous;
     /// let aabb = Aabb3::new(Point3::new(0., 0., 0.), Point3::new(10., 20., 30.));
     /// let line = Line3::new(Point3::new(-1., 1., 1.), Point3::new(11., 1., 1.));
     /// assert!(aabb.intersection(&line).is_some());
@@ -331,7 +333,7 @@ impl<S: BaseFloat> Continuous<Aabb3<S>> for Line3<S> {
         if aabb.contains(&self.dest) {
             return Some(self.dest);
         }
-        // Else: test for a ray <-> AABB intersection
+
         if cgmath::ulps_eq!(self.dest, &self.origin) {
             return None;
         }
@@ -355,7 +357,8 @@ impl<S: BaseFloat> Continuous<Aabb3<S>> for Line3<S> {
             tmax = tmax.min(t1.max(t2));
         }
 
-        if (tmin < S::zero() && tmax < S::zero()) || (cgmath::ulps_ne!(tmax, &tmin) && tmax < tmin) {
+        if (tmin < S::zero() && tmax < S::zero()) || (tmax < tmin && cgmath::ulps_ne!(tmax, &tmin))
+        {
             None
         } else {
             let t = if tmin >= S::zero() { tmin } else { tmax };
@@ -364,13 +367,15 @@ impl<S: BaseFloat> Continuous<Aabb3<S>> for Line3<S> {
     }
 }
 
-impl<S: BaseFloat> Continuous<Aabb3<S>> for Line3<S> {
+impl<S: BaseFloat> Continuous<Line3<S>> for Aabb3<S> {
+    type Result = Point3<S>;
     #[inline]
     /// Tests for the intersection point between `Line3<Float>` and `Aabb3<Float>`.
     /// Any point of the `Line3<Float>` is located inside, or on the surface of, `Aabb3<Float>` may
     /// be returned as the intersection point.
-    fn intersection(&self, line: &Aabb3<S>) -> bool {
-        line.intersects(self)
+
+    fn intersection(&self, line: &Line3<S>) -> Option<Point3<S>> {
+        line.intersection(self)
     }
 }
 
