@@ -362,7 +362,11 @@ impl<S: BaseFloat> Continuous<Aabb3<S>> for Line3<S> {
             None
         } else {
             let t = if tmin >= S::zero() { tmin } else { tmax };
-            Some(self.origin + direction * t)
+            if t <= S::one() && t >= S::zero() {
+                Some(self.origin + direction * t)
+            } else {
+                None
+            }
         }
     }
 }
