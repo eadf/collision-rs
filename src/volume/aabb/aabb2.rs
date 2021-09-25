@@ -223,3 +223,125 @@ impl<S: BaseFloat> Discrete<Aabb2<S>> for Aabb2<S> {
         a1.x > b0.x && a0.x < b1.x && a1.y > b0.y && a0.y < b1.y
     }
 }
+
+impl<S: BaseFloat> Discrete<Aabb2<S>> for Line2<S> {
+    #[inline]
+    /// Tests if the `Aabb2<BaseFloat>` contains or intersects a `Line2<BaseFloat>`.
+    ///```
+    /// # use collision::{Line2,Aabb2};
+    /// # use cgmath::Point2;
+    /// use collision::Discrete;
+    /// let aabb = Aabb2::new(Point2::new(0., 0.), Point2::new(10., 20.));
+    /// let line = Line2::new(Point2::new(0., 0.), Point2::new(10., 20.));
+    /// assert!(aabb.intersects(&line));
+    ///```
+    fn intersects(&self, aabb: &Aabb2<S>) -> bool {
+        // Intersects if any of the end points are inside the AABB.
+        if aabb.contains(&self.origin) || aabb.contains(&self.dest) {
+            return true;
+        }
+        if cgmath::ulps_eq!(self.dest, &self.origin) {
+            return false;
+        }
+
+        // do NOT normalize the direction
+        let direction = self.dest - self.origin;
+        let inv_dir = Vector2::new(S::one(), S::one()).div_element_wise(direction);
+
+        let mut t1 = (aabb.min.x - self.origin.x) * inv_dir.x;
+        let mut t2 = (aabb.max.x - self.origin.x) * inv_dir.x;
+
+        let mut tmin = t1.min(t2);
+        let mut tmax = t1.max(t2);
+
+        t1 = (aabb.min.y - self.origin.y) * inv_dir.y;
+        t2 = (aabb.max.y - self.origin.y) * inv_dir.y;
+
+        tmin = tmin.max(t1.min(t2));
+        tmax = tmax.min(t1.max(t2));
+
+        if (tmin < S::zero() && tmax < S::zero()) || (tmax < tmin && cgmath::ulps_ne!(tmax, &tmin))
+        {
+            false
+        } else {
+            let t = if tmin >= S::zero() { tmin } else { tmax };
+            t <= S::one() && t >= S::zero()
+        }
+    }
+}
+
+impl<S: BaseFloat> Discrete<Line2<S>> for Aabb2<S> {
+    #[inline]
+    /// Tests if the `Aabb2<BaseFloat>` contains or intersects a `Line2<BaseFloat>`.
+    fn intersects(&self, line: &Line2<S>) -> bool {
+        line.intersects(self)
+    }
+}
+
+impl<S: BaseFloat> Continuous<Aabb2<S>> for Line2<S> {
+    type Result = Point2<S>;
+    #[inline]
+    /// Tests for the intersection point between `Aabb2<BaseFloat>` and `Line2<BaseFloat>`.
+    /// Any point of the `Line2<BaseFloat>` is located inside, or on the surface of, `Aabb2<BaseFloat>` may
+    /// be returned as the intersection point.
+    ///```
+    /// # use collision::{Line2,Aabb2};
+    /// # use cgmath::Point2;
+    /// use collision::Continuous;
+    /// let aabb = Aabb2::new(Point2::new(0., 0.), Point2::new(10., 20.));
+    /// let line = Line2::new(Point2::new(-1., 1.), Point2::new(11., 1.));
+    /// assert!(aabb.intersection(&line).is_some());
+    ///```
+    fn intersection(&self, aabb: &Aabb2<S>) -> Option<Point2<S>> {
+        // Intersects if any of the end points are inside the AABB.
+        if aabb.contains(&self.origin) {
+            return Some(self.origin);
+        }
+        if aabb.contains(&self.dest) {
+            return Some(self.dest);
+        }
+        if cgmath::ulps_eq!(self.dest, &self.origin) {
+            return None;
+        }
+
+        // do NOT normalize the direction
+        let direction = self.dest - self.origin;
+
+        let inv_dir = Vector2::new(S::one(), S::one()).div_element_wise(direction);
+
+        let mut t1 = (aabb.min.x - self.origin.x) * inv_dir.x;
+        let mut t2 = (aabb.max.x - self.origin.x) * inv_dir.x;
+
+        let mut tmin = t1.min(t2);
+        let mut tmax = t1.max(t2);
+
+        t1 = (aabb.min.y - self.origin.y) * inv_dir.y;
+        t2 = (aabb.max.y - self.origin.y) * inv_dir.y;
+
+        tmin = tmin.max(t1.min(t2));
+        tmax = tmax.min(t1.max(t2));
+
+        if (tmin < S::zero() && tmax < S::zero()) || (tmax < tmin && cgmath::ulps_ne!(tmax, &tmin))
+        {
+            None
+        } else {
+            let t = if tmin >= S::zero() { tmin } else { tmax };
+            if t <= S::one() && t >= S::zero() {
+                Some(self.origin + direction * t)
+            } else {
+                None
+            }
+        }
+    }
+}
+
+impl<S: BaseFloat> Continuous<Line2<S>> for Aabb2<S> {
+    type Result = Point2<S>;
+    #[inline]
+    /// Tests for the intersection point between `Aabb2<BaseFloat>` and `Line2<BaseFloat>`.
+    /// Any point of the `Line2<BaseFloat>` is located inside, or on the surface of, `Aabb2<BaseFloat>` may
+    /// be returned as the intersection point.
+    fn intersection(&self, line: &Line2<S>) -> Option<Point2<S>> {
+        line.intersection(self)
+    }
+}
